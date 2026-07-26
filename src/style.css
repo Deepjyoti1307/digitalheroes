@@ -67,7 +67,10 @@
   padding: 0;
 }
 
-html { scroll-padding-top: var(--nav-h); }
+html {
+  scroll-padding-top: var(--nav-h);
+  scroll-behavior: smooth;
+}
 
 body {
   background: var(--bg);

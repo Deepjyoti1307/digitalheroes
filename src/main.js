@@ -1,8 +1,8 @@
 /**
- * NorthPeak Digital — Interactions & Smooth Scroll
+ * NorthPeak Digital — Interactions
  *
  * Features:
- * - Lenis smooth scroll (silky 120fps-ready)
+ * - Native smooth scroll for anchors
  * - Staggered scroll-reveal via IntersectionObserver
  * - Animated stat counters on scroll
  * - Active nav tracking
@@ -10,14 +10,11 @@
  * - Contact form validation
  */
 
-import Lenis from 'lenis';
-
 document.addEventListener('DOMContentLoaded', init);
 
 function init() {
-  const lenis = initSmoothScroll();
-  initMobileNav(lenis);
-  initHeaderScroll(lenis);
+  initMobileNav();
+  initHeaderScroll();
   initScrollReveal();
   initStatCounters();
   initContactForm();
@@ -25,51 +22,10 @@ function init() {
 
 
 /* ═══════════════════════════════════════════════════════════
-   SMOOTH SCROLL (Lenis)
-   ═══════════════════════════════════════════════════════════ */
-
-function initSmoothScroll() {
-  const lenis = new Lenis({
-    duration: 1.4,
-    easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-    orientation: 'vertical',
-    smoothWheel: true,
-    touchMultiplier: 1.5,
-  });
-
-  /** Persistent animation loop */
-  (function raf(time) {
-    lenis.raf(time);
-    requestAnimationFrame(raf);
-  })(performance.now());
-
-  /** Intercept all anchor links for silky scrolling */
-  document.querySelectorAll('a[href^="#"]').forEach((anchor) => {
-    anchor.addEventListener('click', (e) => {
-      const href = anchor.getAttribute('href');
-      if (href === '#') return;
-
-      const target = document.querySelector(href);
-      if (!target) return;
-
-      e.preventDefault();
-      lenis.scrollTo(target, {
-        offset: -72,
-        duration: 1.6,
-        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      });
-    });
-  });
-
-  return lenis;
-}
-
-
-/* ═══════════════════════════════════════════════════════════
    MOBILE NAVIGATION
    ═══════════════════════════════════════════════════════════ */
 
-function initMobileNav(lenis) {
+function initMobileNav() {
   const burger = document.getElementById('burger');
   const nav = document.getElementById('nav');
 
@@ -82,10 +38,8 @@ function initMobileNav(lenis) {
     nav.classList.toggle('nav--open');
 
     if (!isOpen) {
-      lenis.stop();
       document.body.style.overflow = 'hidden';
     } else {
-      lenis.start();
       document.body.style.overflow = '';
     }
   });
@@ -95,7 +49,6 @@ function initMobileNav(lenis) {
       burger.setAttribute('aria-expanded', 'false');
       burger.classList.remove('burger--open');
       nav.classList.remove('nav--open');
-      lenis.start();
       document.body.style.overflow = '';
     });
   });
@@ -106,33 +59,45 @@ function initMobileNav(lenis) {
    HEADER SCROLL STATE + ACTIVE NAV
    ═══════════════════════════════════════════════════════════ */
 
-function initHeaderScroll(lenis) {
+function initHeaderScroll() {
   const header = document.getElementById('header');
   const navLinks = document.querySelectorAll('.nav__link');
   const sections = document.querySelectorAll('section[id]');
 
   if (!header) return;
 
-  lenis.on('scroll', ({ scroll }) => {
-    header.classList.toggle('scrolled', scroll > 30);
+  let ticking = false;
 
-    /* Active section tracking */
-    let current = '';
-    const offset = window.innerHeight * 0.35;
+  window.addEventListener('scroll', () => {
+    if (!ticking) {
+      window.requestAnimationFrame(() => {
+        const scrollY = window.scrollY;
+        
+        // Header shadow
+        header.classList.toggle('scrolled', scrollY > 30);
 
-    sections.forEach((section) => {
-      if (scroll >= section.offsetTop - offset) {
-        current = section.getAttribute('id');
-      }
-    });
+        // Active section tracking
+        let current = '';
+        const offset = window.innerHeight * 0.35;
 
-    navLinks.forEach((link) => {
-      link.classList.toggle(
-        'active',
-        link.getAttribute('href') === `#${current}`
-      );
-    });
-  });
+        sections.forEach((section) => {
+          if (scrollY >= section.offsetTop - offset) {
+            current = section.getAttribute('id');
+          }
+        });
+
+        navLinks.forEach((link) => {
+          link.classList.toggle(
+            'active',
+            link.getAttribute('href') === `#${current}`
+          );
+        });
+
+        ticking = false;
+      });
+      ticking = true;
+    }
+  }, { passive: true });
 }
 
 
